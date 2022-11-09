@@ -1,0 +1,1 @@
+# NX system with hardcoded routes
