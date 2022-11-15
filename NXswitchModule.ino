@@ -1,4 +1,3 @@
-#include "src/io.h"
 #include "src/date.h"
 #include "src/version.h"
 #include "src/macros.h"
@@ -17,10 +16,10 @@ const int lastPoint = 10000 ;   // must be in the end of every line in table to 
 const int points[][nPointsPerStreet+3] =
 {
 //  1e knop 2e    wissels + standen        vlag laatste wissel
-    { 0,    1 , 1|C,    2|S,    3|C,    4|S, lastPoint }, 
-    { 1,    0 , 1|S,    2|C,    3|S,    4|C, lastPoint }, 
-    { 0,    2 , 5|C,    7|S,    8|C,    8|S, lastPoint },
-    { 0,    3 , 1|C,    2|S,    3|C,    4|S, lastPoint },
+    { 0,    1 , 5|C,    6|S,    7|C,    8|S, lastPoint }, 
+    { 1,    0 , 5|C,    6|S,    7|C,    8|S, lastPoint }, 
+    { 0,    2 , 5|C,    7|S,    8|C,    9|S, lastPoint },
+    { 2,    0 , 1|C,    2|S,    3|C,    4|S, lastPoint },
     { 0,    4 , 1|C,    2|S,    3|C,    4|S, lastPoint },
     { 0,    5 , 1|C,    2|S,    3|C,    4|S, lastPoint },
     { 2,    3 , 1|C,    2|S,    3|C,    4|S, lastPoint },
@@ -28,9 +27,10 @@ const int points[][nPointsPerStreet+3] =
     { 2,    5 , 1|C,    2|S,    3|C,    4|S, lastPoint },
     { 2,    6 , 1|C,    2|S,    3|C,    4|S, lastPoint },
     { 2,    7 , 1|C,    2|S,    3|C,    4|S, lastPoint },
+    { 2,    7 , 1|C,    2|S,    3|C,    4|S, lastPoint },
 } ;
 
-const int nStreets = sizeof( points ) / sizeof( points[0][0] ) / nPointsPerStreet - 1 ; // calculate amount of streets, depending on the size of the above table
+const int nStreets = sizeof( points ) / sizeof( points[0][0] ) / nPointsPerStreet - 1 ; // calculate amount of streets, depending on the size of the table above
 
 const int leds[][2] =
 { // address |  Pin
@@ -85,25 +85,21 @@ Debounce button[nButtons] =
 
 void setup()
 {
-    initIO() ;
 
 #ifdef DEBUG
     Serial.begin( 115200 ) ;
     Serial.println("hello world") ;
     printNumberln("nStreets: ", nStreets ) ;
     printNumberln("nleds: ", nLeds ) ;
-    
-    notifyXNetTrnt( 0 , 1 | 0b1000 ) ;
-    notifyXNetTrnt( 3 , 1 | 0b1000 ) ;
-    delay(2000);
-    notifyXNetTrnt( 0 , 0 | 0b1000 ) ;
-    notifyXNetTrnt( 3 , 0 | 0b1000 ) ;
 #else
     Xnet.setup( Loco128, 2 ) ;
 #endif
+
+    for( int i = 0 ; i < nLeds ; i ++ )
+    {
+        pinMode( leds[i][1], OUTPUT ) ;
+    }
 }
-
-
 
 
 void readSwitches()
@@ -198,7 +194,9 @@ void runNx()
                     if( pointState ) Serial.println("curved") ;
                     else             Serial.println("straight") ;
                 #else
-                    
+                    Xnet.SetTrntPos( address, address, 1 ) ;
+                    delay(20) ;
+                    Xnet.SetTrntPos( address, address, 0 ) ;
                 #endif
                 }
             }
@@ -214,7 +212,7 @@ void notifyXNetTrnt(uint16_t Address, uint8_t data)
     {
         Address ++ ;
         data &= 0b11 ;
-        if( data >= 2) data -= 2 ;   // convers 1-2 into 0-1
+        if( data >= 2) data -= 2 ;   // converts 1-2 into 0-1
         
         for( int i = 0 ; i < nLeds ; i ++ )  // match switched addresses to our led addresses
         {
